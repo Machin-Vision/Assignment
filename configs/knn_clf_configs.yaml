@@ -1,5 +1,9 @@
-data_dir: ../data
+save_train_test_embeddings: True
+save_embeddings_dir: ./embeddings
+
+data_dir: ./data
 clip_model_dir: ../clip_model
 
 clip_model_parameters:
   ViT_model: ViT-B/32
+  embedding_size: 512
