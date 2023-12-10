@@ -1,0 +1,5 @@
+data_dir: ../data
+clip_model_dir: ../clip_model
+
+clip_model_parameters:
+  ViT_model: ViT-B/32
