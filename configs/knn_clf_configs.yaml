@@ -1,4 +1,4 @@
-save_train_test_embeddings: True
+save_train_test_embeddings: False
 save_embeddings_dir: ./embeddings
 
 data_dir: ./data
