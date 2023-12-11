@@ -40,14 +40,22 @@ print(f"{device} is used for model training")
 # Load pretrained model and preprocess function
 model, preprocess = clip.load(config["clip_model_parameters"]["ViT_model"], device=device, download_root=config["clip_model_dir"])
 
-model = model.visual
+# model = model.visual
 
 print()
 # model2 = models.vit_b_32(weights=models.ViT_B_32_Weights)
 # print(model2)
 
 # Fully connected layer
-model.add_module("dense_final", nn.Linear(config["embedding_size"], config["output_size"]))
+final_model = nn.Sequential(
+    model.visual,
+    nn.Linear(config["embedding_size"], config["output_size"])
+)
+# model = model.add_module("dense_final", nn.Linear(config["embedding_size"], config["output_size"]))
+# add fully connected layer with output size 37
+
+model = final_model.to(device=device)
+model = model.to(torch.float)
 
 # model = model.encode_image
 
