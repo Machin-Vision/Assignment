@@ -1,17 +1,35 @@
 import os
+import time
 import torch
+import wandb
 import tensorflow_datasets as tfds
 import clip
 from PIL import Image
 import yaml
 import numpy as np
+from datetime import datetime
 from sklearn.neighbors import KNeighborsClassifier as knn
 from sklearn.metrics import accuracy_score
 
+wandb.login()
 
 # Configuration for the model
 with open("./configs/knn_clf_configs.yaml", "r") as file:
     config = yaml.safe_load(file)
+
+#
+# def KNN_classifer():
+run = wandb.init(
+    project="mv-assignment-knn-clf",
+    config = {
+        "clip-model": config["clip_model_parameters"]["ViT_model"], 
+        "embedding_size": config["clip_model_parameters"]["embedding_size"], 
+        "knn_num_neighbhours": config["knn_parameters"]["num_neighbours"],
+        "knn_algorithm": config["knn_parameters"]["algorithm"]
+    }
+
+)
+
 
 # Dataset
 dataset = tfds.data_source("oxford_iiit_pet", data_dir=config["data_dir"],download=False)
@@ -75,6 +93,11 @@ knn_clf.fit(train_embeddings, train_labels)
 
 test_pred = knn_clf.predict(test_embeddings)
 accuracy = accuracy_score(test_labels, test_pred)
+
+now = time.time()
+now = datetime.fromtimestamp(now)
+
+wandb.log({"accuracy": accuracy, "time": now})
 
 print(f"Accuracy of KNN: {accuracy*100:.2f}")
 
