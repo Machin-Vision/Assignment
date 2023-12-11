@@ -13,6 +13,7 @@ from sklearn.metrics import accuracy_score
 import torch.nn as nn
 from  torchsummary import summary
 from torch.utils.data import Dataset, DataLoader
+from tqdm import tqdm
 
 # wandb.login()
 
@@ -41,6 +42,7 @@ model, preprocess = clip.load(config["clip_model_parameters"]["ViT_model"], devi
 # Fully connected layer
 model.add_module("dense_final", nn.Linear(config["embedding_size"], config["output_size"]))
 
+# model = model.encode_image
 
 class OxfordIITPetDataset(Dataset):
     def __init__(self, mode="train"):
@@ -55,7 +57,7 @@ class OxfordIITPetDataset(Dataset):
     def __getitem__(self, idx):
         image = Image.fromarray(self.dataset[idx]["image"])
         label = self.dataset[idx]["label"]
-        image = preprocess(image).unsqueeze(0).to(device)
+        image = preprocess(image)
         return image, label
 
 train_dataset = OxfordIITPetDataset(mode="train")
@@ -65,64 +67,43 @@ train_dataloader = DataLoader(dataset=train_dataset, batch_size=config["batch_si
 test_dataloader = DataLoader(dataset=test_dataset, batch_size=config["batch_size"], shuffle=True)
 
 
-# Train and Test dataset holders
-# train_size = len(dataset["train"])
-# train_embeddings= np.zeros((train_size, config["clip_model_parameters"]["embedding_size"]))
-# train_labels = np.zeros(train_size)
+loss_fn = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
 
-# test_size = len(dataset["train"])
-# test_embeddings= np.zeros((test_size, config["clip_model_parameters"]["embedding_size"]))
-# test_labels = np.zeros(test_size)
+#training model
+for epoch in range(config["num_epochs"]):
 
+    correct_train = 0
+    total_train = 0
+    loss_accum = 0
 
-# # Generate embeddings for Train and Test datasets. 
-# with torch.no_grad():
-#     if config["save_train_test_embeddings"]:
-#         for i in range(len(dataset["train"])):
-#             image = Image.fromarray(dataset["train"][i]["image"])
-#             label = dataset["train"][i]["label"]
-#             image = preprocess(image).unsqueeze(0).to(device)     
-#             image_embedding = model.encode_image(image)
-#             train_embeddings[i] = image_embedding.numpy()
-#             train_labels[i] = label
+    for i, (images, labels) in enumerate(tqdm(train_dataloader)):
+        labels = labels.to(device)
+        images = images.to(device)
+        out = model.encode_image(images)
+        loss = loss_fn(out, labels)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
+        out = torch.argmax(out, dim=1)
+        total_train += out.size(0)
+        correct_train += torch.sum(out==labels)
+        loss_accum += loss.item()
 
-#         for i in range(len(dataset["test"])):
-#             image = Image.fromarray(dataset["test"][i]["image"])
-#             label = dataset["test"][i]["label"]
-#             image = preprocess(image).unsqueeze(0).to(device) 
-#             image_embedding = model.encode_image(image)
-#             test_embeddings[i] = image_embedding.numpy()
-#             test_labels[i] = label
-
-#         with open(f"{config['save_embeddings_dir']}/train/train_embeddings.npy", "wb") as file:
-#             np.save(file, train_embeddings)
-#         with open(f"{config['save_embeddings_dir']}/train/train_labels.npy", "wb") as file:
-#             np.save(file, train_labels)
-#         with open(f"{config['save_embeddings_dir']}/test/test_embeddings.npy", "wb") as file:
-#             np.save(file, test_embeddings)
-#         with open(f"{config['save_embeddings_dir']}/test/test_labels.npy", "wb") as file:
-#             np.save(file, test_labels)
+    print(f"Training accuracy at epoch {epoch} is :{correct_train/total_train*100:.2f}%")
+    print(f"Training loss at epoch {epoch} is :{loss_accum/(total_train/config['batch_size']):.2f}")
 
 
-# # Load Train and Test embeddings
-# train_embeddings = np.load(f"{config['save_embeddings_dir']}/train/train_embeddings.npy")
-# train_labels = np.load(f"{config['save_embeddings_dir']}/train/train_labels.npy")
-# test_embeddings = np.load(f"{config['save_embeddings_dir']}/test/test_embeddings.npy")
-# test_labels = np.load(f"{config['save_embeddings_dir']}/test/test_labels.npy")
+    correct_test = 0
+    total_test = 0
+    #testing model
+    for i, (images, labels) in enumerate(tqdm(test_dataloader)):
+        labels = labels.to(device)
+        images = images.to(device)
+        out = model.encode_image(images)
+        out = torch.argmax(out, dim=1)
+        total_test += out.size(0)
+        correct_test += torch.sum(out==labels)
 
-
-# knn_clf = knn(n_neighbors=config["knn_parameters"]["num_neighbours"], algorithm=config["knn_parameters"]["algorithm"])
-# knn_clf.fit(train_embeddings, train_labels)
-
-# test_pred = knn_clf.predict(test_embeddings)
-# accuracy = accuracy_score(test_labels, test_pred)
-
-# now = time.time()
-# now = datetime.fromtimestamp(now)
-
-# wandb.log({"accuracy": accuracy, "time": now})
-
-# print(f"Accuracy of KNN: {accuracy*100:.2f}")
-
-# print()
+    print(f"Test accuracy at epoch {epoch} is :{correct_test/total_test*100:.2f}%")
