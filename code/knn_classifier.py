@@ -5,6 +5,8 @@ import clip
 from PIL import Image
 import yaml
 import numpy as np
+from sklearn.neighbors import KNeighborsClassifier as knn
+from sklearn.metrics import accuracy_score
 
 
 # Configuration for the model
@@ -66,5 +68,14 @@ train_embeddings = np.load(f"{config['save_embeddings_dir']}/train/train_embeddi
 train_labels = np.load(f"{config['save_embeddings_dir']}/train/train_labels.npy")
 test_embeddings = np.load(f"{config['save_embeddings_dir']}/test/test_embeddings.npy")
 test_labels = np.load(f"{config['save_embeddings_dir']}/test/test_labels.npy")
+
+
+knn_clf = knn(n_neighbors=config["knn_parameters"]["num_neighbours"], algorithm=config["knn_parameters"]["algorithm"])
+knn_clf.fit(train_embeddings, train_labels)
+
+test_pred = knn_clf.predict(test_embeddings)
+accuracy = accuracy_score(test_labels, test_pred)
+
+print(f"Accuracy of KNN: {accuracy*100:.2f}")
 
 print()

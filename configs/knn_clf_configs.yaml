@@ -7,3 +7,7 @@ clip_model_dir: ../clip_model
 clip_model_parameters:
   ViT_model: ViT-B/32
   embedding_size: 512
+
+knn_parameters:
+  num_neighbours: 100
+  algorithm: auto
