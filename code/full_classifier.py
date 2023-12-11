@@ -11,7 +11,6 @@ from datetime import datetime
 from sklearn.neighbors import KNeighborsClassifier as knn
 from sklearn.metrics import accuracy_score
 import torch.nn as nn
-from  torchsummary import summary
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
