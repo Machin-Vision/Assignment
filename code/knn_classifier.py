@@ -51,6 +51,7 @@ test_embeddings= np.zeros((test_size, config["clip_model_parameters"]["embedding
 test_labels = np.zeros(test_size)
 
 
+
 # Generate embeddings for Train and Test datasets. 
 with torch.no_grad():
     if config["save_train_test_embeddings"]:

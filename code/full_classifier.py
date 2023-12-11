@@ -11,7 +11,7 @@ from datetime import datetime
 from sklearn.neighbors import KNeighborsClassifier as knn
 from sklearn.metrics import accuracy_score
 import torch.nn as nn
-from  torchsummary import summary
+# from  torchsummary import summary
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 import torchvision.models as models
@@ -40,6 +40,9 @@ print(f"{device} is used for model training")
 # Load pretrained model and preprocess function
 model, preprocess = clip.load(config["clip_model_parameters"]["ViT_model"], device=device, download_root=config["clip_model_dir"])
 
+model = model.visual
+
+print()
 # model2 = models.vit_b_32(weights=models.ViT_B_32_Weights)
 # print(model2)
 
@@ -74,40 +77,40 @@ test_dataloader = DataLoader(dataset=test_dataset, batch_size=config["batch_size
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
 
-#training model
-# for epoch in range(config["num_epochs"]):
+# training model
+for epoch in range(config["num_epochs"]):
 
-#     correct_train = 0
-#     total_train = 0
-#     loss_accum = 0
+    correct_train = 0
+    total_train = 0
+    loss_accum = 0
 
-#     for i, (images, labels) in enumerate(tqdm(train_dataloader)):
-#         labels = labels.to(device)
-#         images = images.to(device)
-#         out = model.encode_image(images)
-#         loss = loss_fn(out, labels)
-#         optimizer.zero_grad()
-#         loss.backward()
-#         optimizer.step()
+    for i, (images, labels) in enumerate(tqdm(train_dataloader)):
+        labels = labels.to(device)
+        images = images.to(device)
+        out = model(images)
+        loss = loss_fn(out, labels)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-#         out = torch.argmax(out, dim=1)
-#         total_train += out.size(0)
-#         correct_train += torch.sum(out==labels)
-#         loss_accum += loss.item()
+        out = torch.argmax(out, dim=1)
+        total_train += out.size(0)
+        correct_train += torch.sum(out==labels)
+        loss_accum += loss.item()
 
-#     print(f"Training accuracy at epoch {epoch} is :{correct_train/total_train*100:.2f}%")
-#     print(f"Training loss at epoch {epoch} is :{loss_accum/(total_train/config['batch_size']):.2f}")
+    print(f"Training accuracy at epoch {epoch} is :{correct_train/total_train*100:.2f}%")
+    print(f"Training loss at epoch {epoch} is :{loss_accum/(total_train/config['batch_size']):.2f}")
 
 
-#     correct_test = 0
-#     total_test = 0
-#     #testing model
-#     for i, (images, labels) in enumerate(tqdm(test_dataloader)):
-#         labels = labels.to(device)
-#         images = images.to(device)
-#         out = model.encode_image(images)
-#         out = torch.argmax(out, dim=1)
-#         total_test += out.size(0)
-#         correct_test += torch.sum(out==labels)
+    correct_test = 0
+    total_test = 0
+    #testing model
+    for i, (images, labels) in enumerate(tqdm(test_dataloader)):
+        labels = labels.to(device)
+        images = images.to(device)
+        out = model(images)
+        out = torch.argmax(out, dim=1)
+        total_test += out.size(0)
+        correct_test += torch.sum(out==labels)
 
-#     print(f"Test accuracy at epoch {epoch} is :{correct_test/total_test*100:.2f}%")
+    print(f"Test accuracy at epoch {epoch} is :{correct_test/total_test*100:.2f}%")
