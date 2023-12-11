@@ -11,8 +11,10 @@ from datetime import datetime
 from sklearn.neighbors import KNeighborsClassifier as knn
 from sklearn.metrics import accuracy_score
 import torch.nn as nn
+
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
+import torchvision.models as models
 
 # wandb.login()
 
@@ -38,8 +40,22 @@ print(f"{device} is used for model training")
 # Load pretrained model and preprocess function
 model, preprocess = clip.load(config["clip_model_parameters"]["ViT_model"], device=device, download_root=config["clip_model_dir"])
 
+# model = model.visual
+
+print()
+# model2 = models.vit_b_32(weights=models.ViT_B_32_Weights)
+# print(model2)
+
 # Fully connected layer
-model.add_module("dense_final", nn.Linear(config["embedding_size"], config["output_size"]))
+final_model = nn.Sequential(
+    model.visual,
+    nn.Linear(config["embedding_size"], config["output_size"])
+)
+# model = model.add_module("dense_final", nn.Linear(config["embedding_size"], config["output_size"]))
+# add fully connected layer with output size 37
+
+model = final_model.to(device=device)
+model = model.to(torch.float)
 
 # model = model.encode_image
 
@@ -69,7 +85,7 @@ test_dataloader = DataLoader(dataset=test_dataset, batch_size=config["batch_size
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
 
-#training model
+# training model
 for epoch in range(config["num_epochs"]):
 
     correct_train = 0
@@ -79,7 +95,7 @@ for epoch in range(config["num_epochs"]):
     for i, (images, labels) in enumerate(tqdm(train_dataloader)):
         labels = labels.to(device)
         images = images.to(device)
-        out = model.encode_image(images)
+        out = model(images)
         loss = loss_fn(out, labels)
         optimizer.zero_grad()
         loss.backward()
@@ -100,7 +116,7 @@ for epoch in range(config["num_epochs"]):
     for i, (images, labels) in enumerate(tqdm(test_dataloader)):
         labels = labels.to(device)
         images = images.to(device)
-        out = model.encode_image(images)
+        out = model(images)
         out = torch.argmax(out, dim=1)
         total_test += out.size(0)
         correct_test += torch.sum(out==labels)

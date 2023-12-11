@@ -2,7 +2,7 @@ data_dir: ./data
 clip_model_dir: ../clip_model
 
 clip_model_parameters:
-  ViT_model: ViT-B/32
+  ViT_model: ViT-B/32 
   embedding_size: 512
 
 embedding_size: 512 
@@ -13,4 +13,4 @@ num_epochs: 10
 
 batch_size: 8
 
-lr: 0.01
+lr: 0.1

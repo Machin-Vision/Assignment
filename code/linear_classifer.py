@@ -87,8 +87,8 @@ for epoch in range(config["num_epochs"]):
 
 
 
-correct = 0
-total = 0
+    correct = 0
+    total = 0
 
 #testing model
 for i, (embeddings, labels) in enumerate(test_dataloader):
