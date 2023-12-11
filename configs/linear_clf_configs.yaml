@@ -1,0 +1,11 @@
+save_embeddings_dir: ./embeddings
+
+embedding_size: 512 
+
+output_size: 37
+
+num_epochs: 10
+
+batch_size: 8
+
+lr: 0.01
