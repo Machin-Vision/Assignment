@@ -3,3 +3,4 @@ clip_test_images/CLIP.png
 /data
 wandb/
 venv/
+saved_models/
