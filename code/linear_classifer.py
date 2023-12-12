@@ -26,14 +26,6 @@ run = wandb.init(
 
 )
 
-
-# X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1, stratify=y)
-# np.unique(y_train, return_counts=True)
-# np.unique(y_val, return_counts=True)
-
-# train_dataset = Dataset(X_train, y_train, ...)
-# train_loader = DataLoader(train_dataset, ...)
-
 # Device CPU/GPU
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"{device} is used for model training")

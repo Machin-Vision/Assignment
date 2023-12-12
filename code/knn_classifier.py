@@ -14,7 +14,7 @@ from sklearn.metrics import accuracy_score
 wandb.login()
 
 # Configuration for the model
-with open("/home/avishka/biyon/MV/Assignment/configs/knn_clf_configs.yaml", "r") as file:
+with open("./configs/knn_clf_configs.yaml", "r") as file:
     config = yaml.safe_load(file)
 
 

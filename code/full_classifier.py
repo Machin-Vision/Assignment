@@ -19,6 +19,7 @@ import torchvision.models as models
 
 from sklearn.model_selection import train_test_split
 from torchvision.transforms import v2
+
 wandb.login()
 
 # Configuration for the model
@@ -49,36 +50,15 @@ model, preprocess = clip.load(
 
 # Fully connected layer
 final_model = nn.Sequential(
-    model.visual, 
-    nn.Linear(config["embedding_size"], config["output_size"])
+    model.visual, nn.Linear(config["embedding_size"], config["output_size"])
 )
 
 model = final_model.to(device=device)
 model = model.to(torch.float)
 
-# def convert(tf_dataset, field):
-#     b = len(tf_dataset)
-#     shape = tf_dataset[0][field].shape
-#     shape = (b,) + tuple(shape)
-
-#     arr = np.zeros(shape)
-
-#     print()
-#     for i in range(len(tf_dataset)):
-#         arr[i] = tf_dataset[i][field]
-
-#     return arr
-
-
-# train_dataset_images = convert(tfds.data_source("oxford_iiit_pet", data_dir=config["data_dir"], download=False)["train"], "image")
-# print()
-# # for i in range()
-# train_dataset_images = tfds.data_source("oxford_iiit_pet", data_dir=config["data_dir"], download=False)["train"][i]["image"]
-# train_dataset_labels = tfds.data_source("oxford_iiit_pet", data_dir=config["data_dir"], download=False)["train"][:]["label"]
-
-# train_dataset_images = tfds.data_source("oxford_iiit_pet", data_dir=config["data_dir"], download=False)["train"][:]["image"]
-
-train_dataset = tfds.data_source("oxford_iiit_pet", data_dir=config["data_dir"], download=False)["train"]
+train_dataset = tfds.data_source(
+    "oxford_iiit_pet", data_dir=config["data_dir"], download=False
+)["train"]
 train_dataset_labels = []
 
 for i in range(len(train_dataset)):
@@ -89,16 +69,17 @@ train_dataset_labels = train_dataset_labels
 
 train_dataset_idx = [i for i in range(len(train_dataset))]
 
-# train_dataset_images = torch.from_numpy(train_dataset_images)
-# valid_dataset_images = torch.from_numpy(valid_dataset_images)
-# train_dataset_labels = torch.from_numpy(train_dataset_labels)
-# valid_dataset_labels = torch.from_numpy(valid_dataset_labels)
-
-# test_dataset_images = tfds.data_source("oxford_iiit_pet", data_dir=config["data_dir"], download=False)["test"][:]["image"]
-# test_dataset_labels = tfds.data_source("oxford_iiit_pet", data_dir=config["data_dir"], download=False)["test"][:]["label"]
-
-train_dataset_idx, valid_dataset_idx, train_dataset_labels, valid_dataset_labels = train_test_split(train_dataset_idx, train_dataset_labels, test_size=0.2, stratify=train_dataset_labels)
-
+(
+    train_dataset_idx,
+    valid_dataset_idx,
+    train_dataset_labels,
+    valid_dataset_labels,
+) = train_test_split(
+    train_dataset_idx,
+    train_dataset_labels,
+    test_size=0.2,
+    stratify=train_dataset_labels,
+)
 
 transform = v2.RandomApply(
     torch.nn.ModuleList(
@@ -143,11 +124,11 @@ train_dataset = OxfordIITPetDataset(mode="train")
 test_dataset = OxfordIITPetDataset(mode="test")
 
 train_dataloader = DataLoader(
-    dataset=train_dataset, batch_size=config["batch_size"],  sampler=train_sampler
+    dataset=train_dataset, batch_size=config["batch_size"], sampler=train_sampler
 )
 
 validation_dataloader = DataLoader(
-    dataset=train_dataset, batch_size=config["batch_size"],  sampler=valid_sampler
+    dataset=train_dataset, batch_size=config["batch_size"], sampler=valid_sampler
 )
 
 test_dataloader = DataLoader(
@@ -155,7 +136,9 @@ test_dataloader = DataLoader(
 )
 
 loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=config["lr0"], weight_decay=config["weight_decay"])
+optimizer = torch.optim.Adam(
+    model.parameters(), lr=config["lr0"], weight_decay=config["weight_decay"]
+)
 
 max_accuracy = 0
 best_epoch = 0
@@ -188,9 +171,7 @@ for epoch in range(config["num_epochs"]):
     print(
         f"Training accuracy at epoch {epoch} is :{correct_train/total_train*100:.2f}%"
     )
-    print(
-        f"Training loss at epoch {epoch} is :{loss_accum_train/total_train:.2f}"
-    )
+    print(f"Training loss at epoch {epoch} is :{loss_accum_train/total_train:.2f}")
 
     correct_valid = 0
     total_valid = 0
@@ -205,18 +186,20 @@ for epoch in range(config["num_epochs"]):
         correct_valid += torch.sum(out == labels)
         loss_accum_valid += loss.item()
 
-    print(f"Validation accuracy at epoch {epoch} is :{correct_valid/total_valid*100:.2f}%")
+    print(
+        f"Validation accuracy at epoch {epoch} is :{correct_valid/total_valid*100:.2f}%"
+    )
     print(f"Validation loss at epoch {epoch} is :{loss_accum_valid/total_valid:.2f}")
 
-    # if (correct_valid/total_valid*100) > max_accuracy:
-    #     max_accuracy = correct_valid/total_valid*100
-    #     best_epoch = epoch
-
-    wandb.log({"train_loss": loss_accum_train / total_train,
-                "train_accuracy": correct_train / total_train * 100,
-                "validation_loss": loss_accum_valid / total_valid,
-                "validation_accuracy": correct_valid / total_valid * 100,
-                "epoch": epoch})
+    wandb.log(
+        {
+            "train_loss": loss_accum_train / total_train,
+            "train_accuracy": correct_train / total_train * 100,
+            "validation_loss": loss_accum_valid / total_valid,
+            "validation_accuracy": correct_valid / total_valid * 100,
+            "epoch": epoch,
+        }
+    )
 
     # save the model as binary object file
     torch.save(model, f"{config['save_model_dir']}/model_{epoch}.pt")
@@ -228,7 +211,9 @@ for param in model.parameters():
     param.requires_grad = True
 
 loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
+optimizer = torch.optim.Adam(
+    model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"]
+)
 
 for epoch in range(config["num_epochs"]):
     correct_train = 0
@@ -269,50 +254,31 @@ for epoch in range(config["num_epochs"]):
         correct_valid += torch.sum(out == labels)
         loss_accum_valid += loss.item()
 
-    print(f"Validation accuracy at epoch {epoch+config['num_epochs']} is :{correct_valid/total_valid*100:.2f}%")
-    print(f"Validation loss at epoch {epoch+config['num_epochs']} is :{loss_accum_valid/total_valid:.2f}")
+    print(
+        f"Validation accuracy at epoch {epoch+config['num_epochs']} is :{correct_valid/total_valid*100:.2f}%"
+    )
+    print(
+        f"Validation loss at epoch {epoch+config['num_epochs']} is :{loss_accum_valid/total_valid:.2f}"
+    )
 
-    if (correct_valid/total_valid*100) > max_accuracy:
-        max_accuracy = correct_valid/total_valid*100
-        best_epoch = epoch+config["num_epochs"]
+    if (correct_valid / total_valid * 100) > max_accuracy:
+        max_accuracy = correct_valid / total_valid * 100
+        best_epoch = epoch + config["num_epochs"]
 
-    wandb.log({"train_loss": loss_accum_train / total_train,
-                "train_accuracy": correct_train / total_train * 100,
-                "validation_loss": loss_accum_valid / total_valid,
-                "validation_accuracy": correct_valid / total_valid * 100,
-                "epoch": epoch+config["num_epochs"]})
+    wandb.log(
+        {
+            "train_loss": loss_accum_train / total_train,
+            "train_accuracy": correct_train / total_train * 100,
+            "validation_loss": loss_accum_valid / total_valid,
+            "validation_accuracy": correct_valid / total_valid * 100,
+            "epoch": epoch + config["num_epochs"],
+        }
+    )
 
     # save the model as binary object file
-    torch.save(model, f"{config['save_model_dir']}/model_{epoch+config['num_epochs']}.pt")
-
-
-# evaluation testing accuracy
-# clear previous model from gpu memory
-
-
-# model = torch.load(f"{config['save_model_dir']}/model_{best_epoch}.pt")
-
-# correct_test = 0
-# total_test = 0
-# loss_accum_test = 0
-
-# for i, (images, labels) in enumerate(tqdm(test_dataloader)):
-#     labels = labels.to(device)
-#     images = images.to(device)
-#     out = model(images)
-#     loss = loss_fn(out, labels)
-
-#     out = torch.argmax(out, dim=1)
-#     total_test += out.size(0)
-#     correct_test += torch.sum(out == labels)
-#     loss_accum_test += loss.item()
-
-# print(
-#     f"Test accuracy at epoch {epoch} is :{correct_test/total_test*100:.2f}%"
-# )
-# print(
-#     f"Test loss at epoch {epoch} is :{loss_accum_test/total_test:.2f}"
-# )
+    torch.save(
+        model, f"{config['save_model_dir']}/model_{epoch+config['num_epochs']}.pt"
+    )
 
 print(f"Best epoch is {best_epoch} with accuracy {max_accuracy}")
 
