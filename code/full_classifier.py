@@ -86,7 +86,7 @@ test_dataloader = DataLoader(
 
 
 loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
+optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
 
 for epoch in range(config["num_epochs"]):
     correct_train = 0
