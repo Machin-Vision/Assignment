@@ -22,7 +22,6 @@ wandb.login()
 with open("./configs/full_clf_configs.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-#
 # def KNN_classifer():
 run = wandb.init(
     project="mv-assignment-knn-clf",
@@ -45,25 +44,13 @@ model, preprocess = clip.load(
     download_root=config["clip_model_dir"],
 )
 
-# model = model.visual
-
-print()
-# model2 = models.vit_b_32(weights=models.ViT_B_32_Weights)
-# print(model2)
-
 # Fully connected layer
 final_model = nn.Sequential(
     model.visual, nn.Linear(config["embedding_size"], config["output_size"])
 )
 
-# print(final_model)
-# model = model.add_module("dense_final", nn.Linear(config["embedding_size"], config["output_size"]))
-# add fully connected layer with output size 37
-
 model = final_model.to(device=device)
 model = model.to(torch.float)
-
-# model = model.encode_image
 
 
 class OxfordIITPetDataset(Dataset):
