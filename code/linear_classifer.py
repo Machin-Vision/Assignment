@@ -5,6 +5,7 @@ import numpy as np
 import yaml
 from sklearn.preprocessing import OneHotEncoder
 from torch.utils.data import Dataset, DataLoader
+from sklearn import train_test_split
 import wandb
 
 wandb.login()
@@ -25,6 +26,14 @@ run = wandb.init(
 
 )
 
+
+# X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.1, stratify=y)
+# np.unique(y_train, return_counts=True)
+# np.unique(y_val, return_counts=True)
+
+# train_dataset = Dataset(X_train, y_train, ...)
+# train_loader = DataLoader(train_dataset, ...)
+
 # Device CPU/GPU
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"{device} is used for model training")
@@ -36,7 +45,7 @@ test_embeddings_path = f"{config['save_embeddings_dir']}/test/test_embeddings.np
 test_labels_path = f"{config['save_embeddings_dir']}/test/test_labels.npy"
 
 
-class OxfordIITPetDataset(Dataset):
+class OxfordIITPetDataset(Dataset, is_valid=False):
 
     def __init__(self, embedding_file, label_file):
         self.embeddings = np.load(embedding_file)
@@ -52,6 +61,7 @@ class OxfordIITPetDataset(Dataset):
 
 
 train_dataset = OxfordIITPetDataset(train_embeddings_path, train_labels_path)
+
 test_dataset = OxfordIITPetDataset(test_embeddings_path, test_labels_path)
 
 train_dataloader = DataLoader(dataset=train_dataset, batch_size=config["batch_size"], shuffle=True)
