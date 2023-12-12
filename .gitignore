@@ -2,4 +2,5 @@ clip_test_images/CLIP.png
 .vscode/launch.json
 /data
 wandb/
+venv/
 saved_models/
