@@ -11,6 +11,7 @@ from datetime import datetime
 from sklearn.neighbors import KNeighborsClassifier as knn
 from sklearn.metrics import accuracy_score
 import torch.nn as nn
+from torch.utils.data.sampler import SubsetRandomSampler
 
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
@@ -77,13 +78,32 @@ class OxfordIITPetDataset(Dataset):
 train_dataset = OxfordIITPetDataset(mode="train")
 test_dataset = OxfordIITPetDataset(mode="test")
 
+# Creating data indices for training and validation splits:
+dataset_size = len(train_dataset)
+indices = list(range(dataset_size))
+split = int(np.floor(config["validation_split"] * dataset_size))
+
+# shuffling the indices
+np.random.seed(config["random_seed"])
+np.random.shuffle(indices)
+
+train_indices, val_indices = indices[split:], indices[:split]
+
+# Creating PT data samplers and loaders:
+train_sampler = SubsetRandomSampler(train_indices)
+valid_sampler = SubsetRandomSampler(val_indices)
+
 train_dataloader = DataLoader(
-    dataset=train_dataset, batch_size=config["batch_size"], shuffle=True
+    dataset=train_dataset, batch_size=config["batch_size"], shuffle=True,  sampler=train_sampler
 )
+
+validation_dataloader = DataLoader(
+    dataset=train_dataset, batch_size=config["batch_size"], shuffle=True,  sampler=valid_sampler
+)
+
 test_dataloader = DataLoader(
     dataset=test_dataset, batch_size=config["batch_size"], shuffle=True
 )
-
 
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
@@ -114,31 +134,57 @@ for epoch in range(config["num_epochs"]):
         f"Training loss at epoch {epoch} is :{loss_accum_train/total_train:.2f}"
     )
 
-    correct_test = 0
-    total_test = 0
-    loss_accum_test = 0
+    correct_valid = 0
+    total_valid = 0
+    loss_accum_valid = 0
     # testing model
-    for i, (images, labels) in enumerate(tqdm(test_dataloader)):
+    for i, (images, labels) in enumerate(tqdm(validation_dataloader)):
         labels = labels.to(device)
         images = images.to(device)
         out = model(images)
         out = torch.argmax(out, dim=1)
-        total_test += out.size(0)
-        correct_test += torch.sum(out == labels)
-        loss_accum_test += loss.item()
+        total_valid += out.size(0)
+        correct_valid += torch.sum(out == labels)
+        loss_accum_valid += loss.item()
 
-    print(f"Test accuracy at epoch {epoch} is :{correct_test/total_test*100:.2f}%")
-    print(f"Test loss at epoch {epoch} is :{loss_accum_test/total_train:.2f}")
+    print(f"Validation accuracy at epoch {epoch} is :{correct_valid/total_valid*100:.2f}%")
+    print(f"Validation loss at epoch {epoch} is :{loss_accum_valid/total_valid:.2f}")
 
 
     wandb.log({"train_loss": loss_accum_train / total_train,
                 "train_accuracy": correct_train / total_train * 100,
-                "test_loss": loss_accum_test / total_test,
-                "test_accuracy": correct_test / total_test * 100,
+                "test_loss": loss_accum_valid / total_valid,
+                "test_accuracy": correct_valid / total_valid * 100,
                 "epoch": epoch})
 
     # save the model as binary object file
     torch.save(model, f"{config['save_model_dir']}/model_{epoch}.pt")
+
+# evaluation testing accuracy
+correct_test = 0
+total_test = 0
+loss_accum_test = 0
+
+for i, (images, labels) in enumerate(tqdm(train_dataloader)):
+    labels = labels.to(device)
+    images = images.to(device)
+    out = model(images)
+    loss = loss_fn(out, labels)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    out = torch.argmax(out, dim=1)
+    total_test += out.size(0)
+    correct_test += torch.sum(out == labels)
+    loss_accum_test += loss.item()
+
+print(
+    f"Training accuracy at epoch {epoch} is :{correct_test/total_test*100:.2f}%"
+)
+print(
+    f"Training loss at epoch {epoch} is :{loss_accum_test/total_test:.2f}"
+)
 
 # finish the run
 wandb.finish()
