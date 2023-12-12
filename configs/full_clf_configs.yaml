@@ -1,6 +1,6 @@
-data_dir: ./data
+data_dir: /home/avishka/biyon/data
 clip_model_dir: ../clip_model
-save_model_dir: ./saved_models
+save_model_dir: /home/avishka/biyon/MV/Assignment/saved_models
 
 clip_model_parameters:
   ViT_model: ViT-B/32 
@@ -10,10 +10,11 @@ embedding_size: 512
 
 output_size: 37
 
-num_epochs: 20
+num_epochs: 7
 
 batch_size: 32
 
+lr0: 0.01
 lr: 0.000001
 
 weight_decay: 0.0001

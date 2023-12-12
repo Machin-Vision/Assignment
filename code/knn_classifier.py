@@ -14,7 +14,7 @@ from sklearn.metrics import accuracy_score
 wandb.login()
 
 # Configuration for the model
-with open("./configs/knn_clf_configs.yaml", "r") as file:
+with open("/home/avishka/biyon/MV/Assignment/configs/knn_clf_configs.yaml", "r") as file:
     config = yaml.safe_load(file)
 
 
@@ -88,24 +88,47 @@ with torch.no_grad():
 
 
 # Load Train and Test embeddings
+
 train_embeddings = np.load(f"{config['save_embeddings_dir']}/train/train_embeddings.npy")
 train_labels = np.load(f"{config['save_embeddings_dir']}/train/train_labels.npy")
+
+valid_embeddings = np.load(f"{config['save_embeddings_dir']}/train/valid_embeddings.npy")
+valid_labels = np.load( f"{config['save_embeddings_dir']}/train/valid_labels.npy")
+
 test_embeddings = np.load(f"{config['save_embeddings_dir']}/test/test_embeddings.npy")
 test_labels = np.load(f"{config['save_embeddings_dir']}/test/test_labels.npy")
 
+max_acc = 0
+best_neighbors = 0
 
 for n_neighbors in range(num_neighbours_min, num_neighbours_max+1, num_neighbours_interval):
     knn_clf = knn(n_neighbors=n_neighbors, algorithm=config["knn_parameters"]["algorithm"])
     knn_clf.fit(train_embeddings, train_labels)
 
-    test_pred = knn_clf.predict(test_embeddings)
-    accuracy = accuracy_score(test_labels, test_pred)
+    val_pred = knn_clf.predict(valid_embeddings)
+    accuracy = accuracy_score(valid_labels, val_pred)
 
     now = time.time()
     now = datetime.fromtimestamp(now)
 
     wandb.log({"accuracy": accuracy*100, "num_neighbours": n_neighbors, "time": now})
 
+    if max_acc<accuracy:
+        max_acc = accuracy
+        best_neighbors = n_neighbors
+
+
     print(f"Accuracy of KNN: {accuracy*100:.2f}")
+
+
+
+knn_clf = knn(n_neighbors=best_neighbors, algorithm=config["knn_parameters"]["algorithm"])
+knn_clf.fit(train_embeddings, train_labels)
+
+test_pred = knn_clf.predict(test_embeddings)
+accuracy = accuracy_score(test_labels, test_pred)
+
+print("best n_neb : ",best_neighbors)
+print("accuracy : ",accuracy)
 
 wandb.finish()

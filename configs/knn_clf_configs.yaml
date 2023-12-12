@@ -1,7 +1,7 @@
 save_train_test_embeddings: False
-save_embeddings_dir: ./embeddings
+save_embeddings_dir: /home/avishka/biyon/MV/Assignment/embeddings
 
-data_dir: ./data
+data_dir: /home/avishka/biyon/data
 clip_model_dir: ../clip_model
 
 clip_model_parameters:
