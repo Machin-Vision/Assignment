@@ -5,7 +5,7 @@ import numpy as np
 import yaml
 from sklearn.preprocessing import OneHotEncoder
 from torch.utils.data import Dataset, DataLoader
-from sklearn import train_test_split
+# from sklearn import train_test_split
 import wandb
 
 wandb.login()
@@ -41,11 +41,13 @@ print(f"{device} is used for model training")
 # Load Train and Test embeddings
 train_embeddings_path = f"{config['save_embeddings_dir']}/train/train_embeddings.npy"
 train_labels_path = f"{config['save_embeddings_dir']}/train/train_labels.npy"
+valid_embeddings_path = f"{config['save_embeddings_dir']}/train/valid_embeddings.npy"
+valid_labels_path = f"{config['save_embeddings_dir']}/train/valid_labels.npy"
 test_embeddings_path = f"{config['save_embeddings_dir']}/test/test_embeddings.npy"
 test_labels_path = f"{config['save_embeddings_dir']}/test/test_labels.npy"
 
 
-class OxfordIITPetDataset(Dataset, is_valid=False):
+class OxfordIITPetDataset(Dataset):
 
     def __init__(self, embedding_file, label_file):
         self.embeddings = np.load(embedding_file)
@@ -61,12 +63,12 @@ class OxfordIITPetDataset(Dataset, is_valid=False):
 
 
 train_dataset = OxfordIITPetDataset(train_embeddings_path, train_labels_path)
-
+valid_dataset = OxfordIITPetDataset(valid_embeddings_path, valid_labels_path)
 test_dataset = OxfordIITPetDataset(test_embeddings_path, test_labels_path)
 
 train_dataloader = DataLoader(dataset=train_dataset, batch_size=config["batch_size"], shuffle=True)
+valid_dataloader = DataLoader(dataset=valid_dataset, batch_size=config["batch_size"], shuffle=True)
 test_dataloader = DataLoader(dataset=test_dataset, batch_size=config["batch_size"], shuffle=True)
-
 
 model = nn.Sequential()
 model.add_module("dense_final", nn.Linear(config["embedding_size"], config["output_size"]))
@@ -74,8 +76,6 @@ model = model.to(torch.float)
 
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
-
-
 
 #training model
 for epoch in range(config["num_epochs"]):
@@ -112,11 +112,11 @@ for epoch in range(config["num_epochs"]):
 
     correct = 0
     total = 0
-    test_loss = 0
+    validation_loss = 0
 
-    #testing model
+    #validating model
     torch.set_grad_enabled(False)
-    for i, (embeddings, labels) in enumerate(test_dataloader):
+    for i, (embeddings, labels) in enumerate(valid_dataloader):
         embeddings = embeddings.to(torch.float)
         labels = labels.to(torch.long)
         out = model(embeddings)
@@ -124,12 +124,33 @@ for epoch in range(config["num_epochs"]):
         total += out.size(0)
         correct += torch.sum(out==labels)
 
-    test_accuracy = correct/total*100
-    test_loss /= correct
+    validation_accuracy = correct/total*100
+    validation_loss /= correct
 
-    print(f"Test accuracy at epoch {epoch} is :{correct/total*100:.2f}%")
+    print(f"Validation accuracy at epoch {epoch} is :{correct/total*100:.2f}%")
 
-    wandb.log({"training_accuracy": train_accuracy, "train_loss": train_loss, "test_accuracy": test_accuracy, "test_loss": test_loss})
+    wandb.log({"training_accuracy": train_accuracy, "train_loss": train_loss, "validation_accuracy": validation_accuracy, "validation_loss": validation_loss})
 
+
+#testing model
+correct = 0
+total = 0
+test_loss = 0
+
+torch.set_grad_enabled(False)
+for i, (embeddings, labels) in enumerate(valid_dataloader):
+    embeddings = embeddings.to(torch.float)
+    labels = labels.to(torch.long)
+    out = model(embeddings)
+    out = torch.argmax(out, dim=1)
+    total += out.size(0)
+    correct += torch.sum(out==labels)
+
+test_accuracy = correct/total*100
+test_loss /= correct
+
+print(f"Test accuracy at epoch {epoch} is :{correct/total*100:.2f}%")
+
+wandb.log({"test_accuracy": test_accuracy, "test_loss": test_loss})
 
 wandb.finish()
