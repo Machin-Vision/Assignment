@@ -17,19 +17,24 @@ wandb.login()
 with open("./configs/knn_clf_configs.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-#
-# def KNN_classifer():
+
 run = wandb.init(
     project="mv-assignment-knn-clf",
     config = {
         "clip-model": config["clip_model_parameters"]["ViT_model"], 
         "embedding_size": config["clip_model_parameters"]["embedding_size"], 
-        "knn_num_neighbhours": config["knn_parameters"]["num_neighbours"],
+        "knn_num_neighbhours_min": config["knn_parameters"]["num_neighbours_min"],
+        "knn_num_neighbhours_max": config["knn_parameters"]["num_neighbours_max"],
+        "knn_num_neighbhours_interval": config["knn_parameters"]["num_neighbours_interval"],
         "knn_algorithm": config["knn_parameters"]["algorithm"]
     }
 
 )
 
+#num_neighbours limits
+num_neighbours_min = config["knn_parameters"]["num_neighbours_min"]
+num_neighbours_max = config["knn_parameters"]["num_neighbours_max"]
+num_neighbours_interval = config["knn_parameters"]["num_neighbours_interval"]
 
 # Dataset
 dataset = tfds.data_source("oxford_iiit_pet", data_dir=config["data_dir"],download=False)
@@ -89,17 +94,18 @@ test_embeddings = np.load(f"{config['save_embeddings_dir']}/test/test_embeddings
 test_labels = np.load(f"{config['save_embeddings_dir']}/test/test_labels.npy")
 
 
-knn_clf = knn(n_neighbors=config["knn_parameters"]["num_neighbours"], algorithm=config["knn_parameters"]["algorithm"])
-knn_clf.fit(train_embeddings, train_labels)
+for n_neighbors in range(num_neighbours_min, num_neighbours_max+1, num_neighbours_interval):
+    knn_clf = knn(n_neighbors=n_neighbors, algorithm=config["knn_parameters"]["algorithm"])
+    knn_clf.fit(train_embeddings, train_labels)
 
-test_pred = knn_clf.predict(test_embeddings)
-accuracy = accuracy_score(test_labels, test_pred)
+    test_pred = knn_clf.predict(test_embeddings)
+    accuracy = accuracy_score(test_labels, test_pred)
 
-now = time.time()
-now = datetime.fromtimestamp(now)
+    now = time.time()
+    now = datetime.fromtimestamp(now)
 
-wandb.log({"accuracy": accuracy, "time": now})
+    wandb.log({"accuracy": accuracy*100, "num_neighbours": n_neighbors, "time": now})
 
-print(f"Accuracy of KNN: {accuracy*100:.2f}")
+    print(f"Accuracy of KNN: {accuracy*100:.2f}")
 
-print()
+wandb.finish()

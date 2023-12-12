@@ -9,5 +9,7 @@ clip_model_parameters:
   embedding_size: 512
 
 knn_parameters:
-  num_neighbours: 100
+  num_neighbours_min: 5
+  num_neighbours_max: 300
+  num_neighbours_interval: 10
   algorithm: auto
